@@ -1,0 +1,23 @@
+{
+  "name": "@repo/db",
+  "version": "0.1.0",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "license": "MIT",
+  "scripts": {
+    "generate": "drizzle-kit generate",
+    "push": "drizzle-kit push",
+    "studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.1",
+    "postgres": "^3.4.8",
+    "@supabase/supabase-js": "^2.90.1"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.31.8",
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2",
+    "@types/pg": "^8.11.10"
+  }
+}
