@@ -2,12 +2,12 @@
 
 ## 📊 Progress Overview
 - **Phase 1 (Core)**: ✅ 100% Complete
-- **Phase 2 (Mid)**: 🟡 20% Complete  
+- **Phase 2 (Mid)**: 🟡 60% Complete  
 - **Phase 3 (Details)**: 🔴 0% Complete
 
 ---
 
-## 🔵 PHASE 1: CORE (Foundation & MVP)
+## 🔵 PHASE 1: CORE (Foundation & MVP) ✅
 *Goal: Working auth, database, basic AI chat, and navigation*
 
 ### 1.1 Infrastructure
@@ -29,7 +29,7 @@
   - [x] Chat Messages table
   - [x] Notifications table
   - [x] Sync Queue (offline support)
-- [ ] **Push schema to Supabase** ⚠️ NEEDS TESTING
+- [x] Push schema to Supabase
 - [ ] Database seed data (demo content)
 - [ ] Row Level Security (RLS) policies
 
@@ -39,7 +39,7 @@
 - [x] Middleware for protected routes
 - [x] Login page UI
 - [x] Register page UI
-- [ ] **Fix auth bugs** (redirect issues, session persistence)
+- [x] Auth bugs fixed (redirect, session)
 - [ ] Forgot password flow
 - [ ] Email verification flow
 - [ ] OAuth providers (Google, Apple) - *optional*
@@ -53,13 +53,12 @@
 
 ### 1.5 Core Pages (Web)
 - [x] Landing page (hero, features, CTA)
-- [x] Onboarding chat UI (simulated)
-- [x] Dashboard skeleton
-- [ ] **Connect onboarding to real AI** (Xiaomi MiMo)
-- [ ] **Save onboarding data to database**
-- [ ] Goals list page
-- [ ] Goal detail page
-- [ ] Calendar view (basic)
+- [x] Onboarding chat UI
+- [x] Dashboard with real data
+- [x] Goals list page with creation
+- [x] Plans page
+- [x] Calendar view with sessions
+- [x] Progress page with charts
 
 ### 1.6 Core Pages (Mobile)
 - [ ] Bottom tab navigation
@@ -74,39 +73,40 @@
 *Goal: Real AI integration, plan generation, data logging, charts*
 
 ### 2.1 AI Service (`packages/ai`)
-- [x] Basic client wrapper (placeholder)
-- [ ] **Xiaomi MiMo API integration**
+- [x] Basic client wrapper
+- [x] Xiaomi MiMo API integration (with fallback)
+- [x] System prompts library
 - [ ] Context management (conversation history)
-- [ ] System prompts library
 - [ ] Token/cost tracking
 - [ ] Fallback provider support (OpenAI/Anthropic)
 
 ### 2.2 Onboarding AI Flow
-- [ ] Connect chat UI to real LLM
+- [x] Connect chat UI to LLM
 - [ ] Extract structured data from conversation
 - [ ] Save to `user_profiles` table
 - [ ] Generate initial goal suggestions
 
 ### 2.3 Goal & Plan Generation
-- [ ] Goal creation wizard
-- [ ] AI prompt for plan generation
-- [ ] Parse AI response → `plans` + `sessions` + `tasks`
-- [ ] Dual-plan system (micro 2wk + macro 3mo)
-- [ ] Schedule integration (user availability)
+- [x] Goal creation wizard
+- [x] AI prompt for plan generation
+- [x] Parse AI response → plans + sessions + tasks
+- [x] Dual-plan system (micro 2wk + macro 3mo)
+- [x] Schedule integration (user availability)
 
 ### 2.4 Calendar & Sessions
-- [ ] Full calendar component (Web)
+- [x] Full calendar component (Web)
+- [x] Session detail modal
+- [x] Task checklist within session
+- [x] Mark session complete/skip
 - [ ] Agenda list view (Mobile)
-- [ ] Session detail page
-- [ ] Task checklist within session
-- [ ] Mark session complete/skip
 - [ ] Reschedule functionality
 
 ### 2.5 Data Logging
-- [ ] Log entry form (metrics input)
-- [ ] User feedback text field
+- [x] Session completion tracking
+- [x] Task completion tracking
+- [x] User notes field
+- [x] Save logs to `session_logs` table
 - [ ] Energy/mood rating slider
-- [ ] Save logs to `session_logs` table
 - [ ] Real-time validation
 
 ### 2.6 Media Pipeline (Video/Photo)
@@ -115,22 +115,23 @@
 - [ ] Video compression (ffmpeg-kit or cloud)
 - [ ] AI analysis trigger
 - [ ] Save analysis result
-- [ ] **Auto-delete video after analysis** (cost saving)
+- [ ] Auto-delete video after analysis (cost saving)
 
 ### 2.7 AI Feedback Loop
 - [ ] Send session log + media to AI
 - [ ] Parse AI feedback
 - [ ] Store in `session_logs.ai_feedback`
 - [ ] Auto-adjust future sessions based on performance
-- [ ] "Coach Notes" display on dashboard
+- [x] "Coach Notes" display on dashboard
 
 ### 2.8 Progress Visualization
-- [ ] Recharts integration (Web)
+- [x] Recharts integration (Web)
+- [x] Session completion chart
+- [x] Session status pie chart
+- [x] Weekly activity bar chart
+- [x] Goal progress bars
+- [x] Streak tracking
 - [ ] react-native-chart-kit integration (Mobile)
-- [ ] Goal progress over time graph
-- [ ] Session completion rate
-- [ ] Performance metrics by goal type
-- [ ] Streak tracking
 
 ---
 
@@ -142,11 +143,11 @@
 - [ ] Notification preferences (user settings)
 - [ ] Missed session reminders
 - [ ] Achievement celebrations
-- [ ] AI-initiated nudges ("You haven't logged today!")
+- [ ] AI-initiated nudges
 - [ ] In-app notification center
 
 ### 3.2 Offline Support (Mobile)
-- [ ] SQLite local database (WatermelonDB or Drizzle SQLite)
+- [ ] SQLite local database
 - [ ] Sync queue implementation
 - [ ] Conflict resolution logic
 - [ ] Offline indicator UI
@@ -195,26 +196,7 @@
 
 ---
 
-## 🎯 Immediate Next Actions
-
-### Priority 1 (Today)
-1. [ ] Fix auth bugs (session persistence, redirects)
-2. [ ] Push database schema to Supabase
-3. [ ] Connect onboarding chat to Xiaomi MiMo API
-
-### Priority 2 (This Week)
-4. [ ] Save onboarding data to database
-5. [ ] Build goal creation flow
-6. [ ] Generate first AI plan
-
-### Priority 3 (Next Week)
-7. [ ] Calendar implementation
-8. [ ] Session logging
-9. [ ] Basic charts
-
----
-
-## 📁 File Structure Reference
+## 📁 File Structure
 
 ```
 my-best/
@@ -225,9 +207,11 @@ my-best/
 │   │   │   ├── login/          ✅ Login
 │   │   │   ├── register/       ✅ Register
 │   │   │   ├── onboarding/     ✅ Chat UI
-│   │   │   ├── dashboard/      ✅ Dashboard
-│   │   │   ├── goals/          ❌ TODO
-│   │   │   ├── calendar/       ❌ TODO
+│   │   │   ├── dashboard/      ✅ Real data
+│   │   │   ├── goals/          ✅ CRUD + Create
+│   │   │   ├── plans/          ✅ View plans
+│   │   │   ├── calendar/       ✅ Sessions
+│   │   │   ├── progress/       ✅ Charts
 │   │   │   └── settings/       ❌ TODO
 │   │   ├── components/
 │   │   │   └── theme-toggle.tsx ✅
@@ -239,8 +223,8 @@ my-best/
 │       └── (screens)           ❌ TODO
 │
 ├── packages/
-│   ├── db/                     ✅ Schema defined
-│   ├── ai/                     🟡 Placeholder
+│   ├── db/                     ✅ Schema + Supabase
+│   ├── ai/                     ✅ MiMo client
 │   └── ui/                     ✅ From template
 │
 └── PLAN.md                     ✅ Architecture doc

@@ -61,7 +61,7 @@ Please generate a training plan in JSON format.`;
     
     if (user && goalId) {
       // Save the plan to the plans table
-      const { error } = await supabase
+      const { data: plan, error: planError } = await supabase
         .from('plans')
         .insert({
           user_id: user.id,
@@ -71,10 +71,37 @@ Please generate a training plan in JSON format.`;
           plan_data: planData,
           duration_weeks: planData.micro_cycle?.sessions?.length ? Math.ceil(planData.micro_cycle.sessions.length / 7) : 2,
           status: 'active',
+        })
+        .select()
+        .single();
+
+      if (planError) {
+        console.error('Error saving plan:', planError);
+      } else if (plan && planData.micro_cycle?.sessions) {
+        // Create sessions from the plan
+        const today = new Date();
+        const sessions = planData.micro_cycle.sessions.map((session: any) => {
+          const sessionDate = new Date(today);
+          sessionDate.setDate(today.getDate() + session.day - 1);
+          
+          return {
+            user_id: user.id,
+            plan_id: plan.id,
+            title: session.title,
+            scheduled_date: sessionDate.toISOString(),
+            duration_min: session.duration_min,
+            status: 'scheduled',
+            tasks: session.tasks,
+          };
         });
 
-      if (error) {
-        console.error('Error saving plan:', error);
+        const { error: sessionsError } = await supabase
+          .from('sessions')
+          .insert(sessions);
+
+        if (sessionsError) {
+          console.error('Error creating sessions:', sessionsError);
+        }
       }
     }
 

@@ -1,61 +1,229 @@
 "use client";
 
-import { useState } from "react";
-import { Button, Card, CardBody, Chip } from "@heroui/react";
+import { useState, useEffect } from "react";
+import { Button, Card, CardBody, CardHeader, Chip, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Spinner, Checkbox, Textarea } from "@heroui/react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
+
+interface Task {
+  name: string;
+  type: string;
+  target: Record<string, number>;
+  completed?: boolean;
+}
 
 interface Session {
   id: string;
+  plan_id: string;
   title: string;
-  goalTitle: string;
-  time: string;
-  duration: string;
-  status: "upcoming" | "completed" | "missed";
-  icon: string;
+  scheduled_date: string;
+  duration_min: number;
+  status: "scheduled" | "completed" | "skipped";
+  tasks: Task[];
+  notes?: string;
+  plans?: {
+    title: string;
+    goals?: {
+      title: string;
+      goal_type: string;
+    };
+  };
 }
-
-// Demo data
-const DEMO_SESSIONS: Record<string, Session[]> = {
-  "2026-01-08": [
-    { id: "1", title: "Darts Accuracy Training", goalTitle: "Master Darts", time: "18:00", duration: "30 min", status: "upcoming", icon: "🎯" },
-  ],
-  "2026-01-09": [
-    { id: "2", title: "5K Easy Run", goalTitle: "5K Running", time: "07:00", duration: "45 min", status: "upcoming", icon: "🏃" },
-    { id: "3", title: "Morning Stretch", goalTitle: "Morning Routine", time: "06:30", duration: "15 min", status: "upcoming", icon: "☀️" },
-  ],
-  "2026-01-10": [
-    { id: "4", title: "Darts Form Practice", goalTitle: "Master Darts", time: "18:00", duration: "30 min", status: "upcoming", icon: "🎯" },
-  ],
-  "2026-01-06": [
-    { id: "5", title: "Interval Training", goalTitle: "5K Running", time: "07:00", duration: "40 min", status: "completed", icon: "🏃" },
-  ],
-  "2026-01-07": [
-    { id: "6", title: "Darts Bullseye Focus", goalTitle: "Master Darts", time: "18:00", duration: "30 min", status: "completed", icon: "🎯" },
-  ],
-};
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
+const GOAL_ICONS: Record<string, string> = {
+  darts: "🎯",
+  running: "🏃",
+  bodyweight: "💪",
+  weightloss: "⚖️",
+  habit: "✨",
+  custom: "🎨",
+};
+
 export default function CalendarPage() {
-  const [currentDate, setCurrentDate] = useState(new Date(2026, 0, 8)); // January 8, 2026
-  const [selectedDate, setSelectedDate] = useState<string>("2026-01-08");
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [selectedSession, setSelectedSession] = useState<Session | null>(null);
+  const [isSessionOpen, setIsSessionOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [completedTasks, setCompletedTasks] = useState<Set<number>>(new Set());
+  const [sessionNotes, setSessionNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+  const supabase = createClient();
 
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
+  useEffect(() => {
+    fetchSessions();
+  }, [currentDate]);
 
-  const firstDayOfMonth = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  async function fetchSessions() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
 
-  const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
-  const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
+    // Get first and last day of current month view
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
 
-  const formatDateKey = (day: number) => {
-    return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-  };
+    const { data, error } = await supabase
+      .from("sessions")
+      .select(`
+        *,
+        plans (
+          title,
+          goals (
+            title,
+            goal_type
+          )
+        )
+      `)
+      .eq("user_id", user.id)
+      .gte("scheduled_date", firstDay.toISOString())
+      .lte("scheduled_date", lastDay.toISOString())
+      .order("scheduled_date", { ascending: true });
 
-  const sessionsForSelectedDate = DEMO_SESSIONS[selectedDate] || [];
+    if (!error && data) {
+      setSessions(data as Session[]);
+    }
+    setLoading(false);
+  }
+
+  function getDaysInMonth(): (Date | null)[] {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const days: (Date | null)[] = [];
+
+    // Add empty slots for days before first day of month
+    for (let i = 0; i < firstDay.getDay(); i++) {
+      days.push(null);
+    }
+
+    // Add all days of the month
+    for (let i = 1; i <= lastDay.getDate(); i++) {
+      days.push(new Date(year, month, i));
+    }
+
+    return days;
+  }
+
+  function getSessionsForDate(date: Date): Session[] {
+    return sessions.filter(session => {
+      const sessionDate = new Date(session.scheduled_date);
+      return sessionDate.toDateString() === date.toDateString();
+    });
+  }
+
+  function openSession(session: Session) {
+    setSelectedSession(session);
+    setCompletedTasks(new Set(
+      session.tasks
+        ?.map((t, idx) => t.completed ? idx : -1)
+        .filter(idx => idx >= 0) || []
+    ));
+    setSessionNotes(session.notes || "");
+    setIsSessionOpen(true);
+  }
+
+  async function completeSession() {
+    if (!selectedSession) return;
+    setSaving(true);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Update tasks with completion status
+      const updatedTasks = selectedSession.tasks?.map((task, idx) => ({
+        ...task,
+        completed: completedTasks.has(idx),
+      }));
+
+      // Update session in database
+      const { error } = await supabase
+        .from("sessions")
+        .update({
+          status: "completed",
+          tasks: updatedTasks,
+          notes: sessionNotes,
+          completed_at: new Date().toISOString(),
+        })
+        .eq("id", selectedSession.id);
+
+      if (error) throw error;
+
+      // Log the session
+      await supabase
+        .from("session_logs")
+        .insert({
+          user_id: user.id,
+          session_id: selectedSession.id,
+          metrics: {
+            tasks_completed: completedTasks.size,
+            total_tasks: selectedSession.tasks?.length || 0,
+          },
+          user_notes: sessionNotes,
+        });
+
+      // Refresh sessions
+      await fetchSessions();
+      setIsSessionOpen(false);
+      setSelectedSession(null);
+    } catch (error) {
+      console.error("Error completing session:", error);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function skipSession() {
+    if (!selectedSession) return;
+    setSaving(true);
+
+    try {
+      await supabase
+        .from("sessions")
+        .update({
+          status: "skipped",
+          notes: sessionNotes,
+        })
+        .eq("id", selectedSession.id);
+
+      await fetchSessions();
+      setIsSessionOpen(false);
+      setSelectedSession(null);
+    } catch (error) {
+      console.error("Error skipping session:", error);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function prevMonth() {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+  }
+
+  function nextMonth() {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+  }
+
+  function isToday(date: Date): boolean {
+    return date.toDateString() === new Date().toDateString();
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-zinc-950">
+        <Spinner size="lg" color="primary" />
+      </div>
+    );
+  }
+
+  const days = getDaysInMonth();
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-zinc-950">
@@ -65,14 +233,15 @@ export default function CalendarPage() {
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-400 flex items-center justify-center">
             <span className="text-white font-bold">MB</span>
           </div>
-          <span className="font-semibold text-xl">My Best</span>
+          <span className="font-semibold text-xl text-zinc-900 dark:text-white">My Best</span>
         </Link>
 
         <nav className="flex-1 space-y-1">
           <NavItem icon="🏠" label="Dashboard" href="/dashboard" />
           <NavItem icon="🎯" label="Goals" href="/goals" />
+          <NavItem icon="📋" label="Plans" href="/plans" />
           <NavItem icon="📅" label="Calendar" href="/calendar" active />
-          <NavItem icon="💬" label="AI Coach" href="/coach" />
+          <NavItem icon="💬" label="AI Coach" href="/onboarding" />
           <NavItem icon="📊" label="Progress" href="/progress" />
           <NavItem icon="⚙️" label="Settings" href="/settings" />
         </nav>
@@ -83,157 +252,288 @@ export default function CalendarPage() {
         <header className="sticky top-0 z-40 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-lg border-b border-zinc-200 dark:border-zinc-800 px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold">Calendar</h1>
-              <p className="text-sm text-zinc-500">Your training schedule</p>
+              <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">Training Calendar</h1>
+              <p className="text-sm text-zinc-500">
+                {sessions.filter(s => s.status === "completed").length} of {sessions.length} sessions completed this month
+              </p>
             </div>
-            <ThemeToggle />
+            <div className="flex items-center gap-4">
+              <ThemeToggle />
+              <Link href="/goals">
+                <Button color="primary" variant="flat">
+                  + New Goal
+                </Button>
+              </Link>
+            </div>
           </div>
         </header>
 
         <div className="p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Calendar Grid */}
-            <Card className="lg:col-span-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
-              <CardBody>
-                {/* Month Navigation */}
-                <div className="flex items-center justify-between mb-6">
-                  <Button variant="light" isIconOnly onPress={prevMonth}>
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
-                  </Button>
-                  <h2 className="text-xl font-semibold">
-                    {MONTHS[month]} {year}
-                  </h2>
-                  <Button variant="light" isIconOnly onPress={nextMonth}>
-                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </Button>
-                </div>
+          {/* Calendar Navigation */}
+          <div className="flex items-center justify-between mb-6">
+            <Button variant="light" onPress={prevMonth}>
+              ← Previous
+            </Button>
+            <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">
+              {MONTHS[currentDate.getMonth()]} {currentDate.getFullYear()}
+            </h2>
+            <Button variant="light" onPress={nextMonth}>
+              Next →
+            </Button>
+          </div>
 
-                {/* Day Headers */}
-                <div className="grid grid-cols-7 gap-1 mb-2">
-                  {DAYS.map((day) => (
-                    <div key={day} className="text-center text-sm font-medium text-zinc-500 py-2">
-                      {day}
-                    </div>
-                  ))}
-                </div>
-
-                {/* Calendar Days */}
-                <div className="grid grid-cols-7 gap-1">
-                  {/* Empty cells for days before the first of the month */}
-                  {Array.from({ length: firstDayOfMonth }).map((_, i) => (
-                    <div key={`empty-${i}`} className="aspect-square" />
-                  ))}
-
-                  {/* Days of the month */}
-                  {Array.from({ length: daysInMonth }).map((_, i) => {
-                    const day = i + 1;
-                    const dateKey = formatDateKey(day);
-                    const hasSessions = DEMO_SESSIONS[dateKey]?.length > 0;
-                    const isSelected = dateKey === selectedDate;
-                    const isToday = dateKey === "2026-01-08";
-
-                    return (
-                      <button
-                        key={day}
-                        onClick={() => setSelectedDate(dateKey)}
-                        className={`aspect-square rounded-xl flex flex-col items-center justify-center transition-all relative ${
-                          isSelected
-                            ? "bg-gradient-to-br from-indigo-500 to-cyan-500 text-white"
-                            : isToday
-                            ? "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400"
-                            : "hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                        }`}
-                      >
-                        <span className="font-medium">{day}</span>
-                        {hasSessions && !isSelected && (
-                          <div className="absolute bottom-1 flex gap-0.5">
-                            {DEMO_SESSIONS[dateKey].slice(0, 3).map((_, idx) => (
-                              <div
-                                key={idx}
-                                className="w-1.5 h-1.5 rounded-full bg-indigo-500"
-                              />
-                            ))}
-                          </div>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </CardBody>
-            </Card>
-
-            {/* Sessions for Selected Date */}
-            <Card className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
-              <CardBody>
-                <h3 className="font-semibold mb-4">
-                  {new Date(selectedDate).toLocaleDateString("en-US", {
-                    weekday: "long",
-                    month: "long",
-                    day: "numeric",
-                  })}
-                </h3>
-
-                {sessionsForSelectedDate.length === 0 ? (
-                  <div className="text-center py-8 text-zinc-500">
-                    <div className="text-4xl mb-2">📭</div>
-                    <p>No sessions scheduled</p>
+          {/* Calendar Grid */}
+          <Card className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+            <CardBody className="p-4">
+              {/* Day Headers */}
+              <div className="grid grid-cols-7 mb-2">
+                {DAYS.map(day => (
+                  <div key={day} className="text-center text-sm font-medium text-zinc-500 py-2">
+                    {day}
                   </div>
-                ) : (
-                  <div className="space-y-3">
-                    {sessionsForSelectedDate.map((session) => (
-                      <div
-                        key={session.id}
-                        className="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700"
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-white dark:bg-zinc-900 flex items-center justify-center text-xl">
-                            {session.icon}
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between">
-                              <h4 className="font-medium">{session.title}</h4>
-                              <Chip
-                                size="sm"
-                                variant="flat"
-                                color={
-                                  session.status === "completed"
-                                    ? "success"
-                                    : session.status === "missed"
-                                    ? "danger"
-                                    : "primary"
-                                }
-                              >
-                                {session.status}
-                              </Chip>
-                            </div>
-                            <p className="text-sm text-zinc-500">{session.goalTitle}</p>
-                            <div className="flex items-center gap-4 mt-2 text-sm text-zinc-500">
-                              <span>🕐 {session.time}</span>
-                              <span>⏱️ {session.duration}</span>
-                            </div>
-                          </div>
-                        </div>
-                        {session.status === "upcoming" && (
-                          <Button
-                            className="w-full mt-3 bg-gradient-to-r from-indigo-500 to-cyan-500 text-white"
-                            size="sm"
+                ))}
+              </div>
+
+              {/* Calendar Days */}
+              <div className="grid grid-cols-7 gap-1">
+                {days.map((date, idx) => {
+                  if (!date) {
+                    return <div key={`empty-${idx}`} className="h-24" />;
+                  }
+
+                  const daySessions = getSessionsForDate(date);
+                  const hasCompleted = daySessions.some(s => s.status === "completed");
+                  const hasScheduled = daySessions.some(s => s.status === "scheduled");
+
+                  return (
+                    <div
+                      key={date.toISOString()}
+                      className={`h-24 p-2 rounded-lg border transition-colors ${
+                        isToday(date)
+                          ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20"
+                          : "border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700"
+                      }`}
+                    >
+                      <div className={`text-sm font-medium mb-1 ${
+                        isToday(date) ? "text-indigo-600 dark:text-indigo-400" : "text-zinc-700 dark:text-zinc-300"
+                      }`}>
+                        {date.getDate()}
+                      </div>
+                      <div className="space-y-1">
+                        {daySessions.slice(0, 2).map((session) => (
+                          <button
+                            key={session.id}
+                            onClick={() => openSession(session)}
+                            className={`w-full text-left text-xs px-1.5 py-0.5 rounded truncate transition-colors ${
+                              session.status === "completed"
+                                ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
+                                : session.status === "skipped"
+                                ? "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 line-through"
+                                : "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-200 dark:hover:bg-indigo-900/50"
+                            }`}
                           >
-                            Start Session
-                          </Button>
+                            {GOAL_ICONS[session.plans?.goals?.goal_type || "custom"]} {session.title}
+                          </button>
+                        ))}
+                        {daySessions.length > 2 && (
+                          <div className="text-xs text-zinc-500">
+                            +{daySessions.length - 2} more
+                          </div>
                         )}
                       </div>
-                    ))}
-                  </div>
-                )}
-              </CardBody>
-            </Card>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardBody>
+          </Card>
+
+          {/* Upcoming Sessions */}
+          <div className="mt-6">
+            <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-4">Upcoming Sessions</h3>
+            {sessions.filter(s => s.status === "scheduled" && new Date(s.scheduled_date) >= new Date()).length === 0 ? (
+              <Card className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+                <CardBody className="py-8 text-center">
+                  <p className="text-zinc-500 dark:text-zinc-400 mb-4">
+                    No upcoming sessions. Create a goal to generate your training plan!
+                  </p>
+                  <Link href="/goals">
+                    <Button color="primary" variant="flat">
+                      Create a Goal
+                    </Button>
+                  </Link>
+                </CardBody>
+              </Card>
+            ) : (
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                {sessions
+                  .filter(s => s.status === "scheduled" && new Date(s.scheduled_date) >= new Date())
+                  .slice(0, 6)
+                  .map((session) => (
+                    <Card 
+                      key={session.id} 
+                      className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 cursor-pointer hover:border-indigo-400 transition-colors"
+                      isPressable
+                      onPress={() => openSession(session)}
+                    >
+                      <CardBody className="p-4">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="text-2xl">
+                            {GOAL_ICONS[session.plans?.goals?.goal_type || "custom"]}
+                          </div>
+                          <div>
+                            <h4 className="font-medium text-zinc-900 dark:text-white">{session.title}</h4>
+                            <p className="text-xs text-zinc-500">
+                              {new Date(session.scheduled_date).toLocaleDateString()} • {session.duration_min}min
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-xs text-zinc-500">
+                          {session.tasks?.length || 0} tasks
+                        </div>
+                      </CardBody>
+                    </Card>
+                  ))}
+              </div>
+            )}
           </div>
         </div>
       </main>
+
+      {/* Session Detail Modal */}
+      <Modal 
+        isOpen={isSessionOpen} 
+        onOpenChange={setIsSessionOpen}
+        size="2xl"
+        scrollBehavior="inside"
+        classNames={{
+          base: "bg-white dark:bg-zinc-900",
+          header: "border-b border-zinc-200 dark:border-zinc-800",
+          body: "py-6",
+          footer: "border-t border-zinc-200 dark:border-zinc-800",
+        }}
+      >
+        <ModalContent>
+          {(onClose) => selectedSession && (
+            <>
+              <ModalHeader>
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl">
+                    {GOAL_ICONS[selectedSession.plans?.goals?.goal_type || "custom"]}
+                  </span>
+                  <div>
+                    <h2 className="text-xl font-bold text-zinc-900 dark:text-white">
+                      {selectedSession.title}
+                    </h2>
+                    <p className="text-sm text-zinc-500 font-normal">
+                      {new Date(selectedSession.scheduled_date).toLocaleDateString("en-US", {
+                        weekday: "long",
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric"
+                      })} • {selectedSession.duration_min} minutes
+                    </p>
+                  </div>
+                </div>
+              </ModalHeader>
+              <ModalBody>
+                {selectedSession.status === "completed" ? (
+                  <div className="text-center py-8">
+                    <div className="text-6xl mb-4">✅</div>
+                    <h3 className="text-xl font-semibold text-zinc-900 dark:text-white mb-2">
+                      Session Completed!
+                    </h3>
+                    <p className="text-zinc-500">
+                      You completed this session. Great work!
+                    </p>
+                  </div>
+                ) : selectedSession.status === "skipped" ? (
+                  <div className="text-center py-8">
+                    <div className="text-6xl mb-4">⏭️</div>
+                    <h3 className="text-xl font-semibold text-zinc-900 dark:text-white mb-2">
+                      Session Skipped
+                    </h3>
+                    <p className="text-zinc-500">
+                      You skipped this session.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <h3 className="font-semibold text-zinc-900 dark:text-white mb-3">Tasks</h3>
+                    <div className="space-y-3">
+                      {selectedSession.tasks?.map((task, idx) => (
+                        <div 
+                          key={idx}
+                          className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
+                            completedTasks.has(idx)
+                              ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
+                              : "bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700"
+                          }`}
+                        >
+                          <Checkbox
+                            isSelected={completedTasks.has(idx)}
+                            onValueChange={(checked) => {
+                              const newSet = new Set(completedTasks);
+                              if (checked) {
+                                newSet.add(idx);
+                              } else {
+                                newSet.delete(idx);
+                              }
+                              setCompletedTasks(newSet);
+                            }}
+                            color="success"
+                          />
+                          <div className="flex-1">
+                            <p className={`font-medium ${completedTasks.has(idx) ? "line-through text-zinc-500" : "text-zinc-900 dark:text-white"}`}>
+                              {task.name}
+                            </p>
+                            <p className="text-xs text-zinc-500">
+                              {Object.entries(task.target).map(([key, val]) => `${val} ${key}`).join(", ")}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mt-6">
+                      <h3 className="font-semibold text-zinc-900 dark:text-white mb-2">Session Notes</h3>
+                      <Textarea
+                        placeholder="How did it go? Any observations..."
+                        value={sessionNotes}
+                        onValueChange={setSessionNotes}
+                        variant="bordered"
+                        minRows={3}
+                      />
+                    </div>
+                  </>
+                )}
+              </ModalBody>
+              <ModalFooter>
+                {selectedSession.status === "scheduled" && (
+                  <>
+                    <Button variant="light" onPress={skipSession} isLoading={saving}>
+                      Skip Session
+                    </Button>
+                    <Button 
+                      color="success" 
+                      onPress={completeSession}
+                      isLoading={saving}
+                      isDisabled={completedTasks.size === 0}
+                    >
+                      Complete Session ({completedTasks.size}/{selectedSession.tasks?.length || 0})
+                    </Button>
+                  </>
+                )}
+                {(selectedSession.status === "completed" || selectedSession.status === "skipped") && (
+                  <Button variant="light" onPress={onClose}>
+                    Close
+                  </Button>
+                )}
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
     </div>
   );
 }

@@ -42,7 +42,7 @@ export default function GoalsPage() {
   const [minutesPerSession, setMinutesPerSession] = useState(30);
   const [isCreating, setIsCreating] = useState(false);
   const [step, setStep] = useState(1);
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const supabase = createClient();
   const router = useRouter();
 
@@ -126,7 +126,7 @@ export default function GoalsPage() {
       setDaysPerWeek(3);
       setMinutesPerSession(30);
       setStep(1);
-      onClose();
+      onOpenChange(false);
       
       await fetchGoals();
       
@@ -145,7 +145,7 @@ export default function GoalsPage() {
     setSelectedType(null);
     setCustomGoal("");
     setStep(1);
-    onClose();
+    onOpenChange(false);
   }
 
   function getGoalIcon(type: string) {
@@ -255,7 +255,9 @@ export default function GoalsPage() {
       {/* New Goal Modal - Multi-step */}
       <Modal 
         isOpen={isOpen} 
-        onClose={closeModal} 
+        onOpenChange={(open) => {
+          if (!open) closeModal();
+        }}
         size="xl"
         classNames={{
           base: "bg-white dark:bg-zinc-900",
@@ -392,7 +394,7 @@ export default function GoalsPage() {
           <ModalFooter>
             {step === 1 ? (
               <>
-                <Button variant="light" onPress={closeModal}>Cancel</Button>
+                <Button variant="light" onPress={() => onOpenChange(false)}>Cancel</Button>
                 <Button 
                   className="bg-gradient-to-r from-indigo-500 to-cyan-500 text-white"
                   isDisabled={!selectedType || (selectedType === "custom" && !customGoal)}
