@@ -84,8 +84,18 @@ export default function GoalsPage() {
     setIsCreating(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError) {
+        console.error("Auth error:", authError);
+        throw new Error("Authentication error: " + authError.message);
+      }
+      
+      if (!user) {
+        throw new Error("Not authenticated - please log in first");
+      }
+
+      console.log("Creating goal for user:", user.id);
 
       const goalTitle = selectedType === "custom" 
         ? customGoal 
@@ -103,7 +113,12 @@ export default function GoalsPage() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase error:", error);
+        throw new Error("Database error: " + (error.message || error.code || JSON.stringify(error)));
+      }
+      
+      console.log("Goal created:", goal);
 
       const { data: profile } = await supabase
         .from("user_profiles")
@@ -132,8 +147,11 @@ export default function GoalsPage() {
       if (planResult.success) {
         router.push("/plans");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating goal:", error);
+      // Show user-friendly error
+      const message = error?.message || "Unknown error occurred";
+      alert("Failed to create goal: " + message);
     } finally {
       setIsCreating(false);
     }
