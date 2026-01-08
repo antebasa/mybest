@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Configure dark mode to use class strategy */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* Custom theme variables */
 @theme {
   --font-sans: "Geist VF", system-ui, sans-serif;
@@ -38,27 +41,13 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* Light mode specific styles */
+/* Color scheme for browser UI */
 :root {
   color-scheme: light;
 }
 
 .dark {
   color-scheme: dark;
-}
-
-/* Smooth theme transitions */
-html {
-  transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-* {
-  transition: background-color 0.2s ease, border-color 0.2s ease;
-}
-
-/* Light mode card shadows */
-.light .shadow-card {
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
 }
 
 /* Custom scrollbar */
@@ -86,20 +75,4 @@ html {
 
 .dark ::-webkit-scrollbar-thumb:hover {
   background: rgba(75, 85, 99, 0.7);
-}
-
-/* Input focus styles for both modes */
-input:focus, textarea:focus {
-  outline: none;
-}
-
-/* Ensure proper contrast in light mode */
-.light {
-  --tw-text-opacity: 1;
-}
-
-/* Fix HeroUI component backgrounds in light mode */
-[data-theme="light"] [data-slot="base"],
-.light [data-slot="base"] {
-  --heroui-background: 255 255 255;
 }

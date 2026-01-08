@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Button, Card, CardBody, CardHeader, Input, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Chip, Progress, Spinner, Slider } from "@heroui/react";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { Card, CardBody, CardHeader, Input, Chip, Progress, Spinner, Slider } from "@heroui/react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -35,7 +34,7 @@ const EXPERIENCE_LEVELS = [
 export default function GoalsPage() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [customGoal, setCustomGoal] = useState("");
   const [experienceLevel, setExperienceLevel] = useState("beginner");
@@ -69,11 +68,16 @@ export default function GoalsPage() {
     setLoading(false);
   }
 
-  function closeModal() {
+  function handleOpenModal() {
+    alert("Button clicked! Opening modal...");
+    setShowModal(true);
+  }
+
+  function handleCloseModal() {
     setSelectedType(null);
     setCustomGoal("");
     setStep(1);
-    setIsModalOpen(false);
+    setShowModal(false);
   }
 
   async function handleCreateGoal() {
@@ -88,7 +92,6 @@ export default function GoalsPage() {
         ? customGoal 
         : GOAL_TYPES.find(t => t.id === selectedType)?.label || "New Goal";
 
-      // Create the goal in the database
       const { data: goal, error } = await supabase
         .from("goals")
         .insert({
@@ -103,14 +106,12 @@ export default function GoalsPage() {
 
       if (error) throw error;
 
-      // Get user profile for AI context
       const { data: profile } = await supabase
         .from("user_profiles")
         .select("*")
         .eq("user_id", user.id)
         .single();
 
-      // Generate AI training plan
       const planResponse = await fetch("/api/generate-plan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -119,30 +120,38 @@ export default function GoalsPage() {
           goalTitle,
           goalType: selectedType,
           experienceLevel,
-          schedule: {
-            daysPerWeek,
-            minutesPerSession,
-          },
+          schedule: { daysPerWeek, minutesPerSession },
           userProfile: profile,
         }),
       });
 
       const planResult = await planResponse.json();
       
-      // Reset form and close modal
-      closeModal();
-      
+      handleCloseModal();
       await fetchGoals();
       
-      // Redirect to plans page to see the generated plan
       if (planResult.success) {
         router.push("/plans");
       }
     } catch (error) {
       console.error("Error creating goal:", error);
+      alert("Error creating goal: " + error);
     } finally {
       setIsCreating(false);
     }
+  }
+
+  function toggleTheme() {
+    const html = document.documentElement;
+    const isDark = html.classList.contains("dark");
+    if (isDark) {
+      html.classList.remove("dark");
+      localStorage.setItem("mybest-theme", "light");
+    } else {
+      html.classList.add("dark");
+      localStorage.setItem("mybest-theme", "dark");
+    }
+    alert("Theme toggled to: " + (isDark ? "light" : "dark"));
   }
 
   function getGoalIcon(type: string) {
@@ -151,7 +160,7 @@ export default function GoalsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-zinc-950">
+      <div className="min-h-screen flex items-center justify-center bg-zinc-100 dark:bg-zinc-950">
         <Spinner size="lg" color="primary" />
       </div>
     );
@@ -160,7 +169,7 @@ export default function GoalsPage() {
   return (
     <div className="min-h-screen bg-zinc-100 dark:bg-zinc-950">
       {/* Sidebar */}
-      <aside className="fixed left-0 top-0 bottom-0 w-64 bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 p-4 hidden lg:flex flex-col">
+      <aside className="fixed left-0 top-0 bottom-0 w-64 bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 p-4 hidden lg:flex flex-col z-50">
         <Link href="/dashboard" className="flex items-center gap-2 mb-8">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-400 flex items-center justify-center">
             <span className="text-white font-bold">MB</span>
@@ -180,21 +189,26 @@ export default function GoalsPage() {
 
       {/* Main Content */}
       <main className="lg:pl-64">
-        <header className="sticky top-0 z-40 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-lg border-b border-zinc-200 dark:border-zinc-800 px-6 py-4">
+        <header className="sticky top-0 z-40 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-lg border-b border-zinc-200 dark:border-zinc-800 px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">My Goals</h1>
               <p className="text-sm text-zinc-500">{goals.filter(g => g.status === "active").length} active goals</p>
             </div>
             <div className="flex items-center gap-4">
-              <ThemeToggle />
+              {/* Theme Toggle */}
               <button
                 type="button"
-                onClick={() => {
-                  console.log("New Goal button clicked");
-                  setIsModalOpen(true);
-                }}
-                className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-cyan-500 text-white rounded-xl font-medium shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 transition-all cursor-pointer"
+                onClick={toggleTheme}
+                className="p-2 rounded-lg bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 cursor-pointer"
+              >
+                <span className="text-lg">🌓</span>
+              </button>
+              {/* New Goal Button */}
+              <button
+                type="button"
+                onClick={handleOpenModal}
+                className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-cyan-500 text-white rounded-xl font-medium shadow-lg hover:opacity-90 cursor-pointer"
               >
                 + New Goal
               </button>
@@ -215,228 +229,195 @@ export default function GoalsPage() {
                 </p>
                 <button
                   type="button"
-                  onClick={() => {
-                    console.log("Create First Goal button clicked");
-                    setIsModalOpen(true);
-                  }}
-                  className="px-6 py-3 bg-gradient-to-r from-indigo-500 to-cyan-500 text-white rounded-xl font-medium text-lg shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 transition-all cursor-pointer"
+                  onClick={handleOpenModal}
+                  className="px-6 py-3 bg-gradient-to-r from-indigo-500 to-cyan-500 text-white rounded-xl font-medium text-lg shadow-lg hover:opacity-90 cursor-pointer"
                 >
                   Create Your First Goal
                 </button>
               </CardBody>
             </Card>
           ) : (
-            <>
-              {/* Active Goals */}
-              <section className="mb-8">
-                <h2 className="text-lg font-semibold mb-4 text-zinc-900 dark:text-white">Active Goals</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {goals.filter(g => g.status === "active").map((goal) => (
-                    <GoalCard key={goal.id} goal={goal} icon={getGoalIcon(goal.goal_type)} />
-                  ))}
-                </div>
-              </section>
-
-              {/* Completed Goals */}
-              {goals.filter(g => g.status === "completed").length > 0 && (
-                <section>
-                  <h2 className="text-lg font-semibold mb-4 text-zinc-900 dark:text-white">Completed</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {goals.filter(g => g.status === "completed").map((goal) => (
-                      <GoalCard key={goal.id} goal={goal} icon={getGoalIcon(goal.goal_type)} />
-                    ))}
-                  </div>
-                </section>
-              )}
-            </>
+            <section className="mb-8">
+              <h2 className="text-lg font-semibold mb-4 text-zinc-900 dark:text-white">Active Goals</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {goals.filter(g => g.status === "active").map((goal) => (
+                  <GoalCard key={goal.id} goal={goal} icon={getGoalIcon(goal.goal_type)} />
+                ))}
+              </div>
+            </section>
           )}
         </div>
       </main>
 
-      {/* New Goal Modal - Multi-step */}
-      <Modal 
-        isOpen={isModalOpen} 
-        onOpenChange={setIsModalOpen}
-        size="xl"
-        classNames={{
-          base: "bg-white dark:bg-zinc-900",
-          header: "border-b border-zinc-200 dark:border-zinc-800",
-          body: "py-6",
-          footer: "border-t border-zinc-200 dark:border-zinc-800",
-        }}
-      >
-        <ModalContent>
-          {(onClose) => (
-            <>
-              <ModalHeader className="flex flex-col gap-1">
-                <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Create New Goal</h2>
-                <div className="flex items-center gap-2 mt-2">
-                  {[1, 2].map((s) => (
-                    <div 
-                      key={s}
-                      className={`h-1 flex-1 rounded-full transition-colors ${
-                        s <= step ? "bg-indigo-500" : "bg-zinc-200 dark:bg-zinc-700"
-                      }`}
-                    />
-                  ))}
-                </div>
-              </ModalHeader>
-              <ModalBody>
-                {step === 1 && (
-                  <>
-                    <p className="text-zinc-500 dark:text-zinc-400 mb-4">What do you want to improve?</p>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      {GOAL_TYPES.map((type) => (
-                        <button
-                          type="button"
-                          key={type.id}
-                          onClick={() => setSelectedType(type.id)}
-                          className={`p-4 rounded-xl border-2 transition-all text-center cursor-pointer ${
-                            selectedType === type.id
-                              ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20"
-                              : "border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600"
-                          }`}
-                        >
-                          <span className="text-2xl block mb-1">{type.icon}</span>
-                          <span className="text-sm font-medium text-zinc-900 dark:text-white">{type.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                    
-                    {selectedType === "custom" && (
-                      <Input
-                        label="Goal Name"
-                        labelPlacement="outside"
+      {/* Custom Modal - No HeroUI */}
+      {showModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={handleCloseModal}
+          />
+          
+          {/* Modal Content */}
+          <div className="relative bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl w-full max-w-xl mx-4 max-h-[90vh] overflow-auto">
+            {/* Header */}
+            <div className="p-6 border-b border-zinc-200 dark:border-zinc-800">
+              <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Create New Goal</h2>
+              <div className="flex items-center gap-2 mt-2">
+                {[1, 2].map((s) => (
+                  <div 
+                    key={s}
+                    className={`h-1 flex-1 rounded-full transition-colors ${
+                      s <= step ? "bg-indigo-500" : "bg-zinc-200 dark:bg-zinc-700"
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="p-6">
+              {step === 1 && (
+                <>
+                  <p className="text-zinc-500 dark:text-zinc-400 mb-4">What do you want to improve?</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {GOAL_TYPES.map((type) => (
+                      <button
+                        type="button"
+                        key={type.id}
+                        onClick={() => setSelectedType(type.id)}
+                        className={`p-4 rounded-xl border-2 transition-all text-center cursor-pointer ${
+                          selectedType === type.id
+                            ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20"
+                            : "border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600"
+                        }`}
+                      >
+                        <span className="text-2xl block mb-1">{type.icon}</span>
+                        <span className="text-sm font-medium text-zinc-900 dark:text-white">{type.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                  
+                  {selectedType === "custom" && (
+                    <div className="mt-4">
+                      <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                        Goal Name
+                      </label>
+                      <input
+                        type="text"
                         placeholder="What's your goal?"
                         value={customGoal}
                         onChange={(e) => setCustomGoal(e.target.value)}
-                        variant="bordered"
-                        className="mt-4"
-                      />
-                    )}
-                  </>
-                )}
-
-                {step === 2 && (
-                  <div className="space-y-6">
-                    <div>
-                      <p className="text-zinc-500 dark:text-zinc-400 mb-4">
-                        Tell us about your experience and schedule so we can create the perfect plan.
-                      </p>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                        Experience Level
-                      </label>
-                      <div className="grid grid-cols-2 gap-2">
-                        {EXPERIENCE_LEVELS.map((level) => (
-                          <button
-                            type="button"
-                            key={level.value}
-                            onClick={() => setExperienceLevel(level.value)}
-                            className={`p-3 rounded-lg border-2 text-sm transition-all cursor-pointer ${
-                              experienceLevel === level.value
-                                ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300"
-                                : "border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-300"
-                            }`}
-                          >
-                            {level.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                        Days per Week: <span className="text-indigo-500">{daysPerWeek}</span>
-                      </label>
-                      <Slider 
-                        size="md"
-                        step={1}
-                        minValue={1}
-                        maxValue={7}
-                        value={daysPerWeek}
-                        onChange={(val) => setDaysPerWeek(val as number)}
-                        color="primary"
-                        showSteps
-                        marks={[
-                          { value: 1, label: "1" },
-                          { value: 3, label: "3" },
-                          { value: 5, label: "5" },
-                          { value: 7, label: "7" },
-                        ]}
-                        className="max-w-full"
+                        className="w-full px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
                       />
                     </div>
+                  )}
+                </>
+              )}
 
-                    <div>
-                      <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                        Minutes per Session: <span className="text-indigo-500">{minutesPerSession}</span>
-                      </label>
-                      <Slider 
-                        size="md"
-                        step={5}
-                        minValue={15}
-                        maxValue={120}
-                        value={minutesPerSession}
-                        onChange={(val) => setMinutesPerSession(val as number)}
-                        color="primary"
-                        marks={[
-                          { value: 15, label: "15m" },
-                          { value: 30, label: "30m" },
-                          { value: 60, label: "1h" },
-                          { value: 120, label: "2h" },
-                        ]}
-                        className="max-w-full"
-                      />
+              {step === 2 && (
+                <div className="space-y-6">
+                  <p className="text-zinc-500 dark:text-zinc-400">
+                    Tell us about your experience and schedule.
+                  </p>
+
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                      Experience Level
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {EXPERIENCE_LEVELS.map((level) => (
+                        <button
+                          type="button"
+                          key={level.value}
+                          onClick={() => setExperienceLevel(level.value)}
+                          className={`p-3 rounded-lg border-2 text-sm transition-all cursor-pointer ${
+                            experienceLevel === level.value
+                              ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300"
+                              : "border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-300"
+                          }`}
+                        >
+                          {level.label}
+                        </button>
+                      ))}
                     </div>
                   </div>
-                )}
-              </ModalBody>
-              <ModalFooter>
-                {step === 1 ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={onClose}
-                      className="px-4 py-2 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl font-medium cursor-pointer"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setStep(2)}
-                      disabled={!selectedType || (selectedType === "custom" && !customGoal)}
-                      className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-cyan-500 text-white rounded-xl font-medium disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                    >
-                      Next →
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => setStep(1)}
-                      className="px-4 py-2 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl font-medium cursor-pointer"
-                    >
-                      ← Back
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleCreateGoal}
-                      disabled={isCreating}
-                      className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-cyan-500 text-white rounded-xl font-medium disabled:opacity-50 cursor-pointer"
-                    >
-                      {isCreating ? "Generating Plan..." : "Create Goal & Generate Plan"}
-                    </button>
-                  </>
-                )}
-              </ModalFooter>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
+
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                      Days per Week: <span className="text-indigo-500">{daysPerWeek}</span>
+                    </label>
+                    <input
+                      type="range"
+                      min="1"
+                      max="7"
+                      value={daysPerWeek}
+                      onChange={(e) => setDaysPerWeek(parseInt(e.target.value))}
+                      className="w-full"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                      Minutes per Session: <span className="text-indigo-500">{minutesPerSession}</span>
+                    </label>
+                    <input
+                      type="range"
+                      min="15"
+                      max="120"
+                      step="5"
+                      value={minutesPerSession}
+                      onChange={(e) => setMinutesPerSession(parseInt(e.target.value))}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-6 border-t border-zinc-200 dark:border-zinc-800 flex justify-end gap-3">
+              {step === 1 ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleCloseModal}
+                    className="px-4 py-2 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStep(2)}
+                    disabled={!selectedType || (selectedType === "custom" && !customGoal)}
+                    className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-cyan-500 text-white rounded-xl font-medium disabled:opacity-50 cursor-pointer"
+                  >
+                    Next →
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setStep(1)}
+                    className="px-4 py-2 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl cursor-pointer"
+                  >
+                    ← Back
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCreateGoal}
+                    disabled={isCreating}
+                    className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-cyan-500 text-white rounded-xl font-medium disabled:opacity-50 cursor-pointer"
+                  >
+                    {isCreating ? "Generating Plan..." : "Create Goal"}
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -459,7 +440,7 @@ function NavItem({ icon, label, href, active = false }: { icon: string; label: s
 
 function GoalCard({ goal, icon }: { goal: Goal; icon: string }) {
   return (
-    <Card className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:shadow-lg hover:border-indigo-300 dark:hover:border-indigo-700 transition-all">
+    <Card className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
       <CardHeader className="flex justify-between items-start">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-100 to-cyan-100 dark:from-indigo-900/30 dark:to-cyan-900/30 flex items-center justify-center text-2xl">
@@ -467,44 +448,31 @@ function GoalCard({ goal, icon }: { goal: Goal; icon: string }) {
           </div>
           <div>
             <h3 className="font-semibold text-zinc-900 dark:text-white">{goal.title}</h3>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
-              {new Date(goal.created_at).toLocaleDateString()}
-            </p>
+            <p className="text-sm text-zinc-500">{new Date(goal.created_at).toLocaleDateString()}</p>
           </div>
         </div>
-        <Chip 
-          size="sm" 
-          variant="flat"
-          color={goal.status === "active" ? "primary" : goal.status === "completed" ? "success" : "default"}
-        >
+        <Chip size="sm" variant="flat" color={goal.status === "active" ? "primary" : "success"}>
           {goal.status}
         </Chip>
       </CardHeader>
       <CardBody className="pt-0">
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="text-zinc-500 dark:text-zinc-400">Progress</span>
+            <span className="text-zinc-500">Progress</span>
             <span className="font-medium text-zinc-900 dark:text-white">{goal.progress}%</span>
           </div>
-          <Progress 
-            value={goal.progress} 
-            color="primary"
-            className="max-w-full"
-            classNames={{
-              indicator: "bg-gradient-to-r from-indigo-500 to-cyan-500",
-            }}
-          />
+          <Progress value={goal.progress} color="primary" />
         </div>
         <div className="flex gap-2 mt-4">
           <Link href="/plans" className="flex-1">
-            <Button variant="flat" className="w-full">
+            <button className="w-full px-3 py-2 text-sm bg-zinc-100 dark:bg-zinc-800 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer">
               View Plan
-            </Button>
+            </button>
           </Link>
           <Link href="/calendar" className="flex-1">
-            <Button color="primary" variant="flat" className="w-full">
+            <button className="w-full px-3 py-2 text-sm bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-200 dark:hover:bg-indigo-900/50 cursor-pointer">
               Train
-            </Button>
+            </button>
           </Link>
         </div>
       </CardBody>
