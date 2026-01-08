@@ -121,46 +121,37 @@ export default function RegisterPage() {
 
             <Input
               type="text"
-              label="Full Name"
-              labelPlacement="outside"
-              placeholder="John Doe"
+              placeholder="Full Name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               variant="bordered"
               isRequired
               classNames={{
                 inputWrapper: "bg-white dark:bg-zinc-900",
-                label: "text-zinc-700 dark:text-zinc-300 font-medium",
               }}
             />
 
             <Input
               type="email"
-              label="Email"
-              labelPlacement="outside"
-              placeholder="you@example.com"
+              placeholder="Email Address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               variant="bordered"
               isRequired
               classNames={{
                 inputWrapper: "bg-white dark:bg-zinc-900",
-                label: "text-zinc-700 dark:text-zinc-300 font-medium",
               }}
             />
 
             <Input
               type="password"
-              label="Password"
-              labelPlacement="outside"
-              placeholder="Create a strong password"
+              placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               variant="bordered"
               isRequired
               classNames={{
                 inputWrapper: "bg-white dark:bg-zinc-900",
-                label: "text-zinc-700 dark:text-zinc-300 font-medium",
               }}
             />
 

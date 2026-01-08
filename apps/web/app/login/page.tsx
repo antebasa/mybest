@@ -67,31 +67,25 @@ export default function LoginPage() {
 
             <Input
               type="email"
-              label="Email"
-              labelPlacement="outside"
-              placeholder="you@example.com"
+              placeholder="Email Address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               variant="bordered"
               isRequired
               classNames={{
                 inputWrapper: "bg-white dark:bg-zinc-900",
-                label: "text-zinc-700 dark:text-zinc-300 font-medium",
               }}
             />
 
             <Input
               type="password"
-              label="Password"
-              labelPlacement="outside"
-              placeholder="Enter your password"
+              placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               variant="bordered"
               isRequired
               classNames={{
                 inputWrapper: "bg-white dark:bg-zinc-900",
-                label: "text-zinc-700 dark:text-zinc-300 font-medium",
               }}
             />
 
