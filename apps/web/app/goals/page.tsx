@@ -69,7 +69,6 @@ export default function GoalsPage() {
   }
 
   function handleOpenModal() {
-    alert("Button clicked! Opening modal...");
     setShowModal(true);
   }
 
@@ -135,7 +134,6 @@ export default function GoalsPage() {
       }
     } catch (error) {
       console.error("Error creating goal:", error);
-      alert("Error creating goal: " + error);
     } finally {
       setIsCreating(false);
     }
@@ -151,7 +149,6 @@ export default function GoalsPage() {
       html.classList.add("dark");
       localStorage.setItem("mybest-theme", "dark");
     }
-    alert("Theme toggled to: " + (isDark ? "light" : "dark"));
   }
 
   function getGoalIcon(type: string) {
