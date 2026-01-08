@@ -1,6 +1,7 @@
 "use client";
 
-import { Button, Card, CardBody, CardHeader, Progress, Avatar, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, Link } from "@heroui/react";
+import { Button, Card, CardBody, CardHeader, Progress, Avatar, Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/react";
+import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -41,8 +42,9 @@ export default function DashboardPage() {
         <nav className="flex-1 space-y-1">
           <NavItem icon="🏠" label="Dashboard" href="/dashboard" active />
           <NavItem icon="🎯" label="Goals" href="/goals" />
+          <NavItem icon="📋" label="Plans" href="/plans" />
           <NavItem icon="📅" label="Calendar" href="/calendar" />
-          <NavItem icon="💬" label="AI Coach" href="/coach" />
+          <NavItem icon="💬" label="AI Coach" href="/onboarding" />
           <NavItem icon="📊" label="Progress" href="/progress" />
           <NavItem icon="⚙️" label="Settings" href="/settings" />
         </nav>
@@ -85,9 +87,11 @@ export default function DashboardPage() {
             </div>
             <div className="flex items-center gap-4">
               <ThemeToggle />
-              <Button color="primary" className="bg-gradient-to-r from-indigo-500 to-cyan-500 text-white">
-                + New Goal
-              </Button>
+              <Link href="/goals">
+                <Button color="primary" className="bg-gradient-to-r from-indigo-500 to-cyan-500 text-white">
+                  + New Goal
+                </Button>
+              </Link>
             </div>
           </div>
         </header>
