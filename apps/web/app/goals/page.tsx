@@ -69,11 +69,6 @@ export default function GoalsPage() {
     setLoading(false);
   }
 
-  function openModal() {
-    console.log("Opening modal");
-    setIsModalOpen(true);
-  }
-
   function closeModal() {
     setSelectedType(null);
     setCustomGoal("");
@@ -194,8 +189,12 @@ export default function GoalsPage() {
             <div className="flex items-center gap-4">
               <ThemeToggle />
               <button
-                onClick={openModal}
-                className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-cyan-500 text-white rounded-xl font-medium shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 transition-all"
+                type="button"
+                onClick={() => {
+                  console.log("New Goal button clicked");
+                  setIsModalOpen(true);
+                }}
+                className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-cyan-500 text-white rounded-xl font-medium shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 transition-all cursor-pointer"
               >
                 + New Goal
               </button>
@@ -215,8 +214,12 @@ export default function GoalsPage() {
                   Choose what you want to improve and our AI will create a personalized training plan just for you.
                 </p>
                 <button
-                  onClick={openModal}
-                  className="px-6 py-3 bg-gradient-to-r from-indigo-500 to-cyan-500 text-white rounded-xl font-medium text-lg shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 transition-all"
+                  type="button"
+                  onClick={() => {
+                    console.log("Create First Goal button clicked");
+                    setIsModalOpen(true);
+                  }}
+                  className="px-6 py-3 bg-gradient-to-r from-indigo-500 to-cyan-500 text-white rounded-xl font-medium text-lg shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 transition-all cursor-pointer"
                 >
                   Create Your First Goal
                 </button>
@@ -285,9 +288,10 @@ export default function GoalsPage() {
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                       {GOAL_TYPES.map((type) => (
                         <button
+                          type="button"
                           key={type.id}
                           onClick={() => setSelectedType(type.id)}
-                          className={`p-4 rounded-xl border-2 transition-all text-center ${
+                          className={`p-4 rounded-xl border-2 transition-all text-center cursor-pointer ${
                             selectedType === type.id
                               ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20"
                               : "border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600"
@@ -328,9 +332,10 @@ export default function GoalsPage() {
                       <div className="grid grid-cols-2 gap-2">
                         {EXPERIENCE_LEVELS.map((level) => (
                           <button
+                            type="button"
                             key={level.value}
                             onClick={() => setExperienceLevel(level.value)}
-                            className={`p-3 rounded-lg border-2 text-sm transition-all ${
+                            className={`p-3 rounded-lg border-2 text-sm transition-all cursor-pointer ${
                               experienceLevel === level.value
                                 ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300"
                                 : "border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-300"
@@ -392,22 +397,36 @@ export default function GoalsPage() {
               <ModalFooter>
                 {step === 1 ? (
                   <>
-                    <Button variant="light" onPress={onClose}>Cancel</Button>
                     <button
+                      type="button"
+                      onClick={onClose}
+                      className="px-4 py-2 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl font-medium cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => setStep(2)}
                       disabled={!selectedType || (selectedType === "custom" && !customGoal)}
-                      className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-cyan-500 text-white rounded-xl font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-cyan-500 text-white rounded-xl font-medium disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     >
                       Next →
                     </button>
                   </>
                 ) : (
                   <>
-                    <Button variant="light" onPress={() => setStep(1)}>← Back</Button>
                     <button
+                      type="button"
+                      onClick={() => setStep(1)}
+                      className="px-4 py-2 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl font-medium cursor-pointer"
+                    >
+                      ← Back
+                    </button>
+                    <button
+                      type="button"
                       onClick={handleCreateGoal}
                       disabled={isCreating}
-                      className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-cyan-500 text-white rounded-xl font-medium disabled:opacity-50"
+                      className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-cyan-500 text-white rounded-xl font-medium disabled:opacity-50 cursor-pointer"
                     >
                       {isCreating ? "Generating Plan..." : "Create Goal & Generate Plan"}
                     </button>

@@ -4,17 +4,20 @@ import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 
 export function ThemeToggle() {
-  const { setTheme, resolvedTheme } = useTheme();
+  const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    console.log("ThemeToggle mounted, theme:", theme, "resolved:", resolvedTheme);
   }, []);
 
+  // Always render the same initial state to avoid hydration mismatch
   if (!mounted) {
     return (
       <button 
-        className="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800"
+        type="button"
+        className="p-2 rounded-lg bg-zinc-200 dark:bg-zinc-800 cursor-pointer"
         aria-label="Toggle theme"
       >
         <div className="w-5 h-5" />
@@ -23,15 +26,21 @@ export function ThemeToggle() {
   }
 
   const isDark = resolvedTheme === "dark";
+  console.log("Rendering ThemeToggle, isDark:", isDark, "theme:", theme, "resolved:", resolvedTheme);
+
+  const toggleTheme = () => {
+    const newTheme = isDark ? "light" : "dark";
+    console.log("Toggling theme from", resolvedTheme, "to", newTheme);
+    setTheme(newTheme);
+  };
 
   return (
     <button
-      onClick={() => {
-        console.log("Theme toggle clicked, current:", resolvedTheme);
-        setTheme(isDark ? "light" : "dark");
-      }}
-      className="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
-      aria-label="Toggle theme"
+      type="button"
+      onClick={toggleTheme}
+      className="p-2 rounded-lg bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
+      aria-label={`Switch to ${isDark ? "light" : "dark"} mode`}
+      title={`Switch to ${isDark ? "light" : "dark"} mode`}
     >
       {isDark ? (
         <svg
@@ -40,7 +49,7 @@ export function ThemeToggle() {
           viewBox="0 0 24 24"
           strokeWidth={1.5}
           stroke="currentColor"
-          className="w-5 h-5 text-yellow-500"
+          className="w-5 h-5 text-yellow-400"
         >
           <path
             strokeLinecap="round"
