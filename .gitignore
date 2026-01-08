@@ -19,6 +19,12 @@ dist/
 *.mobileprovision
 *.orig.*
 web-build/
+.kotlin/
+.metro-health-check*
+
+# Generated native folders
+/ios
+/android
 
 # Environment variables
 .env
@@ -39,8 +45,11 @@ web-build/
 logs/
 *.log
 npm-debug.log*
+npm-debug.*
 yarn-debug.log*
+yarn-debug.*
 yarn-error.log*
+yarn-error.*
 
 # Testing
 coverage/
@@ -50,6 +59,7 @@ coverage/
 *.pem
 .vercel
 *.tsbuildinfo
+expo-env.d.ts
 
 # Local development
 .cursor/
