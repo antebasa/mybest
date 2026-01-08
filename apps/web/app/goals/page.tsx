@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Button, Card, CardBody, CardHeader, Input, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure, Chip, Progress, Spinner, Select, SelectItem, Slider } from "@heroui/react";
+import { Button, Card, CardBody, CardHeader, Input, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Chip, Progress, Spinner, Slider } from "@heroui/react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
@@ -35,6 +35,7 @@ const EXPERIENCE_LEVELS = [
 export default function GoalsPage() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [customGoal, setCustomGoal] = useState("");
   const [experienceLevel, setExperienceLevel] = useState("beginner");
@@ -42,7 +43,6 @@ export default function GoalsPage() {
   const [minutesPerSession, setMinutesPerSession] = useState(30);
   const [isCreating, setIsCreating] = useState(false);
   const [step, setStep] = useState(1);
-  const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const supabase = createClient();
   const router = useRouter();
 
@@ -52,7 +52,10 @@ export default function GoalsPage() {
 
   async function fetchGoals() {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     const { data, error } = await supabase
       .from("goals")
@@ -64,6 +67,18 @@ export default function GoalsPage() {
       setGoals(data);
     }
     setLoading(false);
+  }
+
+  function openModal() {
+    console.log("Opening modal");
+    setIsModalOpen(true);
+  }
+
+  function closeModal() {
+    setSelectedType(null);
+    setCustomGoal("");
+    setStep(1);
+    setIsModalOpen(false);
   }
 
   async function handleCreateGoal() {
@@ -119,14 +134,8 @@ export default function GoalsPage() {
 
       const planResult = await planResponse.json();
       
-      // Reset form and refresh goals
-      setSelectedType(null);
-      setCustomGoal("");
-      setExperienceLevel("beginner");
-      setDaysPerWeek(3);
-      setMinutesPerSession(30);
-      setStep(1);
-      onOpenChange(false);
+      // Reset form and close modal
+      closeModal();
       
       await fetchGoals();
       
@@ -141,27 +150,20 @@ export default function GoalsPage() {
     }
   }
 
-  function closeModal() {
-    setSelectedType(null);
-    setCustomGoal("");
-    setStep(1);
-    onOpenChange(false);
-  }
-
   function getGoalIcon(type: string) {
     return GOAL_TYPES.find(t => t.id === type)?.icon || "🎯";
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-zinc-950">
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-zinc-950">
         <Spinner size="lg" color="primary" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-zinc-950">
+    <div className="min-h-screen bg-zinc-100 dark:bg-zinc-950">
       {/* Sidebar */}
       <aside className="fixed left-0 top-0 bottom-0 w-64 bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 p-4 hidden lg:flex flex-col">
         <Link href="/dashboard" className="flex items-center gap-2 mb-8">
@@ -178,7 +180,6 @@ export default function GoalsPage() {
           <NavItem icon="📅" label="Calendar" href="/calendar" />
           <NavItem icon="💬" label="AI Coach" href="/onboarding" />
           <NavItem icon="📊" label="Progress" href="/progress" />
-          <NavItem icon="⚙️" label="Settings" href="/settings" />
         </nav>
       </aside>
 
@@ -192,13 +193,12 @@ export default function GoalsPage() {
             </div>
             <div className="flex items-center gap-4">
               <ThemeToggle />
-              <Button 
-                color="primary" 
-                className="bg-gradient-to-r from-indigo-500 to-cyan-500 text-white shadow-lg shadow-indigo-500/25"
-                onPress={onOpen}
+              <button
+                onClick={openModal}
+                className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-cyan-500 text-white rounded-xl font-medium shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 transition-all"
               >
                 + New Goal
-              </Button>
+              </button>
             </div>
           </div>
         </header>
@@ -214,14 +214,12 @@ export default function GoalsPage() {
                 <p className="text-zinc-500 dark:text-zinc-400 mb-6 max-w-md mx-auto">
                   Choose what you want to improve and our AI will create a personalized training plan just for you.
                 </p>
-                <Button 
-                  color="primary" 
-                  size="lg"
-                  className="bg-gradient-to-r from-indigo-500 to-cyan-500 text-white"
-                  onPress={onOpen}
+                <button
+                  onClick={openModal}
+                  className="px-6 py-3 bg-gradient-to-r from-indigo-500 to-cyan-500 text-white rounded-xl font-medium text-lg shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 transition-all"
                 >
                   Create Your First Goal
-                </Button>
+                </button>
               </CardBody>
             </Card>
           ) : (
@@ -254,10 +252,8 @@ export default function GoalsPage() {
 
       {/* New Goal Modal - Multi-step */}
       <Modal 
-        isOpen={isOpen} 
-        onOpenChange={(open) => {
-          if (!open) closeModal();
-        }}
+        isOpen={isModalOpen} 
+        onOpenChange={setIsModalOpen}
         size="xl"
         classNames={{
           base: "bg-white dark:bg-zinc-900",
@@ -267,155 +263,159 @@ export default function GoalsPage() {
         }}
       >
         <ModalContent>
-          <ModalHeader className="flex flex-col gap-1">
-            <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Create New Goal</h2>
-            <div className="flex items-center gap-2 mt-2">
-              {[1, 2].map((s) => (
-                <div 
-                  key={s}
-                  className={`h-1 flex-1 rounded-full transition-colors ${
-                    s <= step ? "bg-indigo-500" : "bg-zinc-200 dark:bg-zinc-700"
-                  }`}
-                />
-              ))}
-            </div>
-          </ModalHeader>
-          <ModalBody>
-            {step === 1 && (
-              <>
-                <p className="text-zinc-500 dark:text-zinc-400 mb-4">What do you want to improve?</p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {GOAL_TYPES.map((type) => (
-                    <button
-                      key={type.id}
-                      onClick={() => setSelectedType(type.id)}
-                      className={`p-4 rounded-xl border-2 transition-all text-center ${
-                        selectedType === type.id
-                          ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20"
-                          : "border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600"
+          {(onClose) => (
+            <>
+              <ModalHeader className="flex flex-col gap-1">
+                <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Create New Goal</h2>
+                <div className="flex items-center gap-2 mt-2">
+                  {[1, 2].map((s) => (
+                    <div 
+                      key={s}
+                      className={`h-1 flex-1 rounded-full transition-colors ${
+                        s <= step ? "bg-indigo-500" : "bg-zinc-200 dark:bg-zinc-700"
                       }`}
-                    >
-                      <span className="text-2xl block mb-1">{type.icon}</span>
-                      <span className="text-sm font-medium text-zinc-900 dark:text-white">{type.label}</span>
-                    </button>
+                    />
                   ))}
                 </div>
-                
-                {selectedType === "custom" && (
-                  <Input
-                    label="Goal Name"
-                    labelPlacement="outside"
-                    placeholder="What's your goal?"
-                    value={customGoal}
-                    onChange={(e) => setCustomGoal(e.target.value)}
-                    variant="bordered"
-                    className="mt-4"
-                  />
+              </ModalHeader>
+              <ModalBody>
+                {step === 1 && (
+                  <>
+                    <p className="text-zinc-500 dark:text-zinc-400 mb-4">What do you want to improve?</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {GOAL_TYPES.map((type) => (
+                        <button
+                          key={type.id}
+                          onClick={() => setSelectedType(type.id)}
+                          className={`p-4 rounded-xl border-2 transition-all text-center ${
+                            selectedType === type.id
+                              ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20"
+                              : "border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600"
+                          }`}
+                        >
+                          <span className="text-2xl block mb-1">{type.icon}</span>
+                          <span className="text-sm font-medium text-zinc-900 dark:text-white">{type.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                    
+                    {selectedType === "custom" && (
+                      <Input
+                        label="Goal Name"
+                        labelPlacement="outside"
+                        placeholder="What's your goal?"
+                        value={customGoal}
+                        onChange={(e) => setCustomGoal(e.target.value)}
+                        variant="bordered"
+                        className="mt-4"
+                      />
+                    )}
+                  </>
                 )}
-              </>
-            )}
 
-            {step === 2 && (
-              <div className="space-y-6">
-                <div>
-                  <p className="text-zinc-500 dark:text-zinc-400 mb-4">
-                    Tell us about your experience and schedule so we can create the perfect plan.
-                  </p>
-                </div>
+                {step === 2 && (
+                  <div className="space-y-6">
+                    <div>
+                      <p className="text-zinc-500 dark:text-zinc-400 mb-4">
+                        Tell us about your experience and schedule so we can create the perfect plan.
+                      </p>
+                    </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                    Experience Level
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {EXPERIENCE_LEVELS.map((level) => (
-                      <button
-                        key={level.value}
-                        onClick={() => setExperienceLevel(level.value)}
-                        className={`p-3 rounded-lg border-2 text-sm transition-all ${
-                          experienceLevel === level.value
-                            ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300"
-                            : "border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-300"
-                        }`}
-                      >
-                        {level.label}
-                      </button>
-                    ))}
+                    <div>
+                      <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                        Experience Level
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {EXPERIENCE_LEVELS.map((level) => (
+                          <button
+                            key={level.value}
+                            onClick={() => setExperienceLevel(level.value)}
+                            className={`p-3 rounded-lg border-2 text-sm transition-all ${
+                              experienceLevel === level.value
+                                ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300"
+                                : "border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-300"
+                            }`}
+                          >
+                            {level.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                        Days per Week: <span className="text-indigo-500">{daysPerWeek}</span>
+                      </label>
+                      <Slider 
+                        size="md"
+                        step={1}
+                        minValue={1}
+                        maxValue={7}
+                        value={daysPerWeek}
+                        onChange={(val) => setDaysPerWeek(val as number)}
+                        color="primary"
+                        showSteps
+                        marks={[
+                          { value: 1, label: "1" },
+                          { value: 3, label: "3" },
+                          { value: 5, label: "5" },
+                          { value: 7, label: "7" },
+                        ]}
+                        className="max-w-full"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                        Minutes per Session: <span className="text-indigo-500">{minutesPerSession}</span>
+                      </label>
+                      <Slider 
+                        size="md"
+                        step={5}
+                        minValue={15}
+                        maxValue={120}
+                        value={minutesPerSession}
+                        onChange={(val) => setMinutesPerSession(val as number)}
+                        color="primary"
+                        marks={[
+                          { value: 15, label: "15m" },
+                          { value: 30, label: "30m" },
+                          { value: 60, label: "1h" },
+                          { value: 120, label: "2h" },
+                        ]}
+                        className="max-w-full"
+                      />
+                    </div>
                   </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                    Days per Week: <span className="text-indigo-500">{daysPerWeek}</span>
-                  </label>
-                  <Slider 
-                    size="md"
-                    step={1}
-                    minValue={1}
-                    maxValue={7}
-                    value={daysPerWeek}
-                    onChange={(val) => setDaysPerWeek(val as number)}
-                    color="primary"
-                    showSteps
-                    marks={[
-                      { value: 1, label: "1" },
-                      { value: 3, label: "3" },
-                      { value: 5, label: "5" },
-                      { value: 7, label: "7" },
-                    ]}
-                    className="max-w-full"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-                    Minutes per Session: <span className="text-indigo-500">{minutesPerSession}</span>
-                  </label>
-                  <Slider 
-                    size="md"
-                    step={5}
-                    minValue={15}
-                    maxValue={120}
-                    value={minutesPerSession}
-                    onChange={(val) => setMinutesPerSession(val as number)}
-                    color="primary"
-                    marks={[
-                      { value: 15, label: "15m" },
-                      { value: 30, label: "30m" },
-                      { value: 60, label: "1h" },
-                      { value: 120, label: "2h" },
-                    ]}
-                    className="max-w-full"
-                  />
-                </div>
-              </div>
-            )}
-          </ModalBody>
-          <ModalFooter>
-            {step === 1 ? (
-              <>
-                <Button variant="light" onPress={() => onOpenChange(false)}>Cancel</Button>
-                <Button 
-                  className="bg-gradient-to-r from-indigo-500 to-cyan-500 text-white"
-                  isDisabled={!selectedType || (selectedType === "custom" && !customGoal)}
-                  onPress={() => setStep(2)}
-                >
-                  Next →
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button variant="light" onPress={() => setStep(1)}>← Back</Button>
-                <Button 
-                  className="bg-gradient-to-r from-indigo-500 to-cyan-500 text-white"
-                  onPress={handleCreateGoal}
-                  isLoading={isCreating}
-                >
-                  {isCreating ? "Generating Plan..." : "Create Goal & Generate Plan"}
-                </Button>
-              </>
-            )}
-          </ModalFooter>
+                )}
+              </ModalBody>
+              <ModalFooter>
+                {step === 1 ? (
+                  <>
+                    <Button variant="light" onPress={onClose}>Cancel</Button>
+                    <button
+                      onClick={() => setStep(2)}
+                      disabled={!selectedType || (selectedType === "custom" && !customGoal)}
+                      className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-cyan-500 text-white rounded-xl font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Next →
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="light" onPress={() => setStep(1)}>← Back</Button>
+                    <button
+                      onClick={handleCreateGoal}
+                      disabled={isCreating}
+                      className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-cyan-500 text-white rounded-xl font-medium disabled:opacity-50"
+                    >
+                      {isCreating ? "Generating Plan..." : "Create Goal & Generate Plan"}
+                    </button>
+                  </>
+                )}
+              </ModalFooter>
+            </>
+          )}
         </ModalContent>
       </Modal>
     </div>
@@ -477,23 +477,16 @@ function GoalCard({ goal, icon }: { goal: Goal; icon: string }) {
           />
         </div>
         <div className="flex gap-2 mt-4">
-          <Button 
-            variant="flat" 
-            className="flex-1"
-            as={Link}
-            href="/plans"
-          >
-            View Plan
-          </Button>
-          <Button 
-            color="primary" 
-            variant="flat"
-            className="flex-1"
-            as={Link}
-            href="/calendar"
-          >
-            Train
-          </Button>
+          <Link href="/plans" className="flex-1">
+            <Button variant="flat" className="w-full">
+              View Plan
+            </Button>
+          </Link>
+          <Link href="/calendar" className="flex-1">
+            <Button color="primary" variant="flat" className="w-full">
+              Train
+            </Button>
+          </Link>
         </div>
       </CardBody>
     </Card>

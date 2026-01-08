@@ -168,7 +168,7 @@ export default function OnboardingPage() {
   const progressPercentage = Math.min((step / 5) * 100, 100);
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-zinc-950">
+    <div className="min-h-screen flex flex-col bg-zinc-100 dark:bg-zinc-950">
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-lg border-b border-zinc-200 dark:border-zinc-800 px-6 py-4">
         <div className="max-w-2xl mx-auto flex items-center justify-between">

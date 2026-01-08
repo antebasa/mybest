@@ -210,7 +210,7 @@ export default function ProgressPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-zinc-950">
+      <div className="min-h-screen flex items-center justify-center bg-zinc-100 dark:bg-zinc-950">
         <Spinner size="lg" color="primary" />
       </div>
     );
@@ -223,7 +223,7 @@ export default function ProgressPage() {
   const streak = calculateStreak();
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-zinc-950">
+    <div className="min-h-screen bg-zinc-100 dark:bg-zinc-950">
       {/* Sidebar */}
       <aside className="fixed left-0 top-0 bottom-0 w-64 bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 p-4 hidden lg:flex flex-col">
         <Link href="/dashboard" className="flex items-center gap-2 mb-8">

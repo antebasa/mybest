@@ -1,11 +1,10 @@
 "use client";
 
-import { Button } from "@heroui/react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 
 export function ThemeToggle() {
-  const { theme, setTheme, resolvedTheme } = useTheme();
+  const { setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -14,21 +13,25 @@ export function ThemeToggle() {
 
   if (!mounted) {
     return (
-      <Button isIconOnly variant="light" aria-label="Toggle theme">
+      <button 
+        className="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800"
+        aria-label="Toggle theme"
+      >
         <div className="w-5 h-5" />
-      </Button>
+      </button>
     );
   }
 
-  // Use resolvedTheme to get actual theme (handles "system" case)
   const isDark = resolvedTheme === "dark";
 
   return (
-    <Button
-      isIconOnly
-      variant="light"
+    <button
+      onClick={() => {
+        console.log("Theme toggle clicked, current:", resolvedTheme);
+        setTheme(isDark ? "light" : "dark");
+      }}
+      className="p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
       aria-label="Toggle theme"
-      onPress={() => setTheme(isDark ? "light" : "dark")}
     >
       {isDark ? (
         <svg
@@ -37,7 +40,7 @@ export function ThemeToggle() {
           viewBox="0 0 24 24"
           strokeWidth={1.5}
           stroke="currentColor"
-          className="w-5 h-5"
+          className="w-5 h-5 text-yellow-500"
         >
           <path
             strokeLinecap="round"
@@ -52,7 +55,7 @@ export function ThemeToggle() {
           viewBox="0 0 24 24"
           strokeWidth={1.5}
           stroke="currentColor"
-          className="w-5 h-5"
+          className="w-5 h-5 text-indigo-600"
         >
           <path
             strokeLinecap="round"
@@ -61,6 +64,6 @@ export function ThemeToggle() {
           />
         </svg>
       )}
-    </Button>
+    </button>
   );
 }
