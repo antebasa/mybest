@@ -2,15 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { AIClient, SYSTEM_PROMPTS, type Message } from "@repo/ai";
 
 export async function POST(request: NextRequest) {
-  try {
-    const { messages, context } = await request.json();
+  let messages: Message[] = [];
+  let context = "";
 
+  try {
+    const body = await request.json();
+    messages = body.messages || [];
+    context = body.context || "";
+  } catch (e) {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  try {
     const apiKey = process.env.XIAOMI_MIMO_API_KEY;
     if (!apiKey) {
-      return NextResponse.json(
-        { error: "AI service not configured" },
-        { status: 500 }
-      );
+      throw new Error("AI service not configured");
     }
 
     const client = new AIClient(apiKey);
@@ -35,9 +41,7 @@ export async function POST(request: NextRequest) {
     console.error("AI Chat Error:", error);
     
     // Fallback to simulated response if AI fails
-    const { messages } = await request.json().catch(() => ({ messages: [] }));
     const lastMessage = messages[messages.length - 1]?.content || "";
-    
     const fallbackResponse = generateFallbackResponse(lastMessage, messages.length);
     
     return NextResponse.json({ 

@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 interface Goal {
   id: string;
   title: string;
-  goal_type: string;
+  type: string;
   progress: number;
   status: "active" | "completed" | "paused";
   created_at: string;
@@ -106,7 +106,7 @@ export default function GoalsPage() {
         .insert({
           user_id: user.id,
           title: goalTitle,
-          goal_type: selectedType,
+          type: selectedType,
           status: "active",
           progress: 0,
         })
@@ -252,14 +252,29 @@ export default function GoalsPage() {
               </CardBody>
             </Card>
           ) : (
-            <section className="mb-8">
-              <h2 className="text-lg font-semibold mb-4 text-zinc-900 dark:text-white">Active Goals</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {goals.filter(g => g.status === "active").map((goal) => (
-                  <GoalCard key={goal.id} goal={goal} icon={getGoalIcon(goal.goal_type)} />
-                ))}
-              </div>
-            </section>
+            <>
+              {/* Active Goals */}
+              <section className="mb-8">
+                <h2 className="text-lg font-semibold mb-4 text-zinc-900 dark:text-white">Active Goals</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {goals.filter(g => g.status === "active").map((goal) => (
+                    <GoalCard key={goal.id} goal={goal} icon={getGoalIcon(goal.type)} />
+                  ))}
+                </div>
+              </section>
+
+              {/* Completed Goals */}
+              {goals.filter(g => g.status === "completed").length > 0 && (
+                <section>
+                  <h2 className="text-lg font-semibold mb-4 text-zinc-900 dark:text-white">Completed</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {goals.filter(g => g.status === "completed").map((goal) => (
+                      <GoalCard key={goal.id} goal={goal} icon={getGoalIcon(goal.type)} />
+                    ))}
+                  </div>
+                </section>
+              )}
+            </>
           )}
         </div>
       </main>

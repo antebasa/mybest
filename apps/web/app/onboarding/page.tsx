@@ -54,7 +54,16 @@ export default function OnboardingPage() {
         }),
       });
 
+      if (!response.ok) {
+        throw new Error(`API Error: ${response.status}`);
+      }
+
       const data = await response.json();
+      
+      if (!data.message) {
+        throw new Error("No message received from AI");
+      }
+
       return data.message;
     } catch (error) {
       console.error("AI Error:", error);
