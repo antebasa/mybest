@@ -66,6 +66,9 @@ export const goals = pgTable("goals", {
   // AI reasoning for this goal setup
   aiReasoning: text("ai_reasoning"),
   
+  status: text("status").default("active"), // "active", "completed", "paused"
+  progress: integer("progress").default(0),
+  
   isActive: boolean("is_active").default(true),
   completedAt: timestamp("completed_at"),
   

@@ -97,7 +97,54 @@ export default function GoalsPage() {
 
       console.log("Creating goal for user:", user.id);
 
-      const goalTitle = selectedType === "custom" 
+      // Ensure public user record exists
+      const { data: publicUser } = await supabase
+        .from("users")
+        .select("id")
+        .eq("id", user.id)
+        .single();
+
+      if (!publicUser) {
+        console.log("Public user missing, creating...");
+        const { error: createUserError } = await supabase
+          .from("users")
+          .insert({
+            id: user.id,
+            email: user.email!,
+            full_name: user.user_metadata?.full_name,
+            auth_provider_id: user.id,
+            updated_at: new Date().toISOString(),
+          });
+
+        if (createUserError) {
+          console.error("Error creating public user:", createUserError);
+          throw new Error("Failed to initialize user account: " + createUserError.message);
+        }
+      }
+
+      // Ensure user profile exists
+      const { data: existingProfile } = await supabase
+        .from("user_profiles")
+        .select("id")
+        .eq("user_id", user.id)
+        .single();
+
+      if (!existingProfile) {
+        console.log("User profile missing, creating...");
+        const { error: createProfileError } = await supabase
+          .from("user_profiles")
+          .insert({
+            user_id: user.id,
+            updated_at: new Date().toISOString(),
+          });
+
+        if (createProfileError) {
+          console.error("Error creating user profile:", createProfileError);
+          // Continue anyway, profile is optional for goal creation but useful for plan gen
+        }
+      }
+
+      const goalTitle = selectedType === "custom"  
         ? customGoal 
         : GOAL_TYPES.find(t => t.id === selectedType)?.label || "New Goal";
 
