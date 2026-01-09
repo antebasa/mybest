@@ -8,7 +8,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint --max-warnings 0",
-    "check-types": "next typegen && tsc --noEmit"
+    "check-types": "next typegen && tsc --noEmit",
+    "test": "npx tsx tests/onboarding.test.ts",
+    "test:onboarding": "npx tsx tests/onboarding.test.ts"
   },
   "dependencies": {
     "@heroui/react": "^2.8.7",

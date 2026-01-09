@@ -26,24 +26,64 @@ export const userProfiles = pgTable("user_profiles", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull().unique(),
   
-  // AI-derived personality traits
-  personality: jsonb("personality").default({}), // { tenacious: true, morning_person: false }
+  // ============================================
+  // ONBOARDING DATA (Phase 1)
+  // ============================================
   
-  // Physical stats for fitness goals
-  physicalStats: jsonb("physical_stats").default({}), // { height_cm: 180, weight_kg: 75, injuries: [] }
+  // User's name (from onboarding Q1)
+  name: text("name"),
   
-  // User interests and hobbies
+  // Why they're here / motivation (from onboarding Q2)
+  motivation: text("motivation"),
+  
+  // User interests and hobbies (from onboarding Q3)
   interests: jsonb("interests").default([]), // ["darts", "running", "chess"]
   
-  // Preferences
-  preferences: jsonb("preferences").default({}), // { preferred_training_days: ["mon", "wed", "fri"], notifications: true }
+  // Lifestyle description (from onboarding Q4)
+  lifestyle: text("lifestyle"),
   
-  // AI Context Memory - summarized history for LLM prompts
+  // Past experience with self-improvement (from onboarding Q5)
+  pastExperience: text("past_experience"),
+  
+  // AI-derived personality traits (from onboarding Q6)
+  personality: jsonb("personality").default({}), // { tenacious: true, analytical: false }
+  
+  // Schedule availability (from onboarding Q7)
+  weeklyAvailability: jsonb("weekly_availability").default({}), // { days: ["mon", "wed", "fri"], timePreference: "evening" }
+  
+  // Physical limitations (from onboarding Q8)
+  limitations: jsonb("limitations").default([]), // ["bad knee", "shoulder issues"]
+  
+  // Short-term goal vision (from onboarding Q9)
+  shortTermGoal: text("short_term_goal"),
+  
+  // Long-term goal vision (from onboarding Q10)
+  longTermGoal: text("long_term_goal"),
+  
+  // ============================================
+  // PHYSICAL STATS (optional, for fitness goals)
+  // ============================================
+  physicalStats: jsonb("physical_stats").default({}), // { height_cm: 180, weight_kg: 75, age: 30 }
+  
+  // ============================================
+  // PREFERENCES
+  // ============================================
+  preferences: jsonb("preferences").default({}), // { notifications: true, theme: "dark" }
+  
+  // ============================================
+  // AI CONTEXT & BYOK (Phase 1)
+  // ============================================
+  
+  // AI-generated summary of user for efficient prompts
   aiContextSummary: text("ai_context_summary"),
   
-  // Schedule availability
-  weeklyAvailability: jsonb("weekly_availability").default({}), // { mon: ["18:00-20:00"], tue: [] }
+  // User's own API keys (encrypted)
+  // Structure: { openai: "sk-...", anthropic: "sk-ant-...", mimo: "...", openrouter: "sk-or-..." }
+  apiKeys: jsonb("api_keys").default({}),
   
+  // ============================================
+  // STATUS
+  // ============================================
   onboardingCompleted: boolean("onboarding_completed").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -65,6 +105,12 @@ export const goals = pgTable("goals", {
   
   // AI reasoning for this goal setup
   aiReasoning: text("ai_reasoning"),
+  
+  // AI conversation during goal setup (Phase 2)
+  aiConversation: jsonb("ai_conversation").default([]), // Array of { role, content }
+  
+  // Media requested during goal setup
+  mediaRequests: jsonb("media_requests").default([]), // Array of { type, prompt, received }
   
   status: text("status").default("active"), // "active", "completed", "paused"
   progress: integer("progress").default(0),
@@ -132,6 +178,12 @@ export const tasks = pgTable("tasks", {
   // Target metrics for this task
   targetMetrics: jsonb("target_metrics").default({}), // { bullseyes: 25, total_throws: 50 }
   
+  // Coaching tips from AI
+  tips: text("tips"),
+  
+  // If media_required, what prompt to show
+  mediaPrompt: text("media_prompt"),
+  
   // Order within the session
   orderIndex: integer("order_index").default(0),
   
@@ -198,7 +250,7 @@ export const chatMessages = pgTable("chat_messages", {
   goalId: uuid("goal_id").references(() => goals.id, { onDelete: "set null" }),
   
   // Metadata for context management
-  metadata: jsonb("metadata").default({}),
+  metadata: jsonb("metadata").default({}), // { context: "onboarding", questionIndex: 3 }
   
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -220,6 +272,22 @@ export const notifications = pgTable("notifications", {
   
   // For push notifications
   sentAt: timestamp("sent_at"),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// ============================================
+// VALIDATION LOGS (Phase 1 - for debugging)
+// ============================================
+export const validationLogs = pgTable("validation_logs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  
+  context: text("context").notNull(), // "days_available", "name", etc.
+  question: text("question").notNull(), // The question asked
+  userInput: text("user_input").notNull(), // What user typed
+  aiResponse: jsonb("ai_response").notNull(), // Full validation result
+  isValid: boolean("is_valid").notNull(),
   
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
